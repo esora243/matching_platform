@@ -1,31 +1,33 @@
-import { createClient } from './supabase/server';
-import { redirect } from 'next/navigation';
 import type { Profile, UserRole } from '@/types/database';
 
+const dummyProfile: Profile = {
+  id: 'dummy-user-id',
+  email: 'test@example.com',
+  full_name: '浜松 太郎（テスト）',
+  role: 'student',
+  approval_status: 'approved',
+  avatar_url: null,
+  bio: 'これはデプロイテスト用の仮データです。',
+  graduation_year: null,
+  founding_experience: null,
+  expertise: [],
+  department: null,
+  enrollment_year: 2024,
+  accepts_chat_requests: true,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+};
+
 export async function getCurrentProfile(): Promise<Profile | null> {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-  return data as Profile | null;
+  return dummyProfile;
 }
 
 export async function requireAuth(): Promise<Profile> {
-  const profile = await getCurrentProfile();
-  if (!profile) redirect('/login');
-  return profile;
+  return dummyProfile;
 }
 
 export async function requireRole(roles: UserRole[]): Promise<Profile> {
-  const profile = await requireAuth();
-  if (!roles.includes(profile.role)) redirect('/dashboard');
-  return profile;
+  return dummyProfile;
 }
 
 export const ROLE_LABEL: Record<UserRole, string> = {

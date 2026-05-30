@@ -1,16 +1,12 @@
 import { requireAuth, ROLE_LABEL } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 
 export default async function Dashboard() {
   const profile = await requireAuth();
-  const supabase = createClient();
 
-  const [{ count: topicCount }, { count: eventCount }, { count: programCount }] = await Promise.all([
-    supabase.from('topics').select('*', { count: 'exact', head: true }),
-    supabase.from('events').select('*', { count: 'exact', head: true }),
-    supabase.from('programs').select('*', { count: 'exact', head: true }),
-  ]);
+  const topicCount = 5;
+  const eventCount = 2;
+  const programCount = 3;
 
   return (
     <div className="space-y-6">
@@ -20,9 +16,9 @@ export default async function Dashboard() {
       </div>
 
       <section className="grid md:grid-cols-3 gap-4">
-        <StatCard label="掲示板トピック" value={topicCount ?? 0} href="/board" />
-        <StatCard label="イベント" value={eventCount ?? 0} href="/events" />
-        <StatCard label="支援プログラム" value={programCount ?? 0} href="/programs" />
+        <StatCard label="掲示板トピック" value={topicCount} href="/board" />
+        <StatCard label="イベント" value={eventCount} href="/events" />
+        <StatCard label="支援プログラム" value={programCount} href="/programs" />
       </section>
 
       <section className="grid md:grid-cols-2 gap-4">
