@@ -1,59 +1,32 @@
 'use client';
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import type { ChatRequest } from '@/types/database';
 
-export default function ChatRequestButton({ obOgId, existing }: { obOgId: string; existing: ChatRequest | null }) {
+export default function ChatRequestButton({ obOgId: _obOgId, existing }: { obOgId: string; existing: ChatRequest | null }) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  if (existing?.status === 'pending') {
-    return <span className="badge bg-amber-100 text-amber-700">申請中</span>;
-  }
-  if (existing?.status === 'accepted') {
-    return <a href="/chat" className="btn-primary text-xs">チャットを開く</a>;
-  }
-
+  const [status, setStatus] = useState<'idle' | 'pending'>(existing?.status === 'pending' ? 'pending' : 'idle');
+  if (existing?.status === 'accepted') return (<a href="/chat" className="btn-mint text-xs">💬 チャットを開く</a>);
+  if (status === 'pending') return (<span className="badge-sunny">⏳ 申請中</span>);
   const submit = async () => {
     setLoading(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { error } = await supabase
-      .from('chat_requests')
-      .insert({ student_id: user.id, ob_og_id: obOgId, message });
-    setLoading(false);
-    if (!error) {
-      setOpen(false);
-      router.refresh();
-    } else {
-      alert(error.message);
-    }
+    await new Promise((r) => setTimeout(r, 600));
+    setLoading(false); setOpen(false); setStatus('pending');
   };
-
   return (
     <div>
-      <button onClick={() => setOpen(true)} className="btn-primary text-xs">
-        個別チャット相談を申請
-      </button>
+      <button onClick={() => setOpen(true)} className="btn-coral text-xs">🤝 1on1チャットを申請</button>
       {open && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-md w-full">
-            <h3 className="font-semibold mb-3">チャット相談を申請</h3>
-            <textarea
-              className="input min-h-[100px]"
-              placeholder="自己紹介と、相談したい内容を簡単に書いてください"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-            <div className="flex gap-2 mt-3 justify-end">
-              <button className="btn-secondary" onClick={() => setOpen(false)}>キャンセル</button>
-              <button className="btn-primary" disabled={loading} onClick={submit}>
-                {loading ? '送信中…' : '申請する'}
-              </button>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="card-pop max-w-md w-full animate-pop-in">
+            <div className="text-3xl mb-2">🤝</div>
+            <h3 className="font-bold text-lg text-slate-900 mb-1">チャット相談を申請する</h3>
+            <p className="text-xs text-slate-500 mb-4">自己紹介と、相談したい内容を簡単に伝えましょう ✨</p>
+            <textarea className="input min-h-[120px]" placeholder="例: はじめまして！医療AI領域で起業を考えている学生です。創業初期のチーム作りについて15分ほどお話を伺えませんか？" value={message} onChange={(e) => setMessage(e.target.value)} />
+            <div className="flex gap-2 mt-4 justify-end">
+              <button className="btn-secondary" onClick={() => setOpen(false)}>やめる</button>
+              <button className="btn-coral" disabled={loading || !message.trim()} onClick={submit}>{loading ? '送信中…' : '🚀 申請を送る'}</button>
             </div>
           </div>
         </div>

@@ -1,72 +1,53 @@
-import { requireRole, ROLE_LABEL } from '@/lib/auth';
-import { createClient } from '@/lib/supabase/server';
+import { requireRole } from '@/lib/auth';
+import { ROLE_LABEL, ROLE_EMOJI } from '@/lib/roles';
 import AdminActions from './AdminActions';
-
-export const dynamic = 'force-dynamic';
+import { dummyMembers, dummyStudents } from '@/lib/dummyData';
 
 export default async function AdminPage() {
   await requireRole(['admin']);
-  const supabase = createClient();
-
-  const { data: pending } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'ob_og')
-    .eq('approval_status', 'pending')
-    .order('created_at', { ascending: false });
-
-  const { data: allUsers } = await supabase
-    .from('profiles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
+  const pending = dummyMembers.filter((m) => m.role === 'ob_og' && m.approval_status === 'pending');
+  const allUsers = [...dummyMembers, ...dummyStudents].slice(0, 50);
   return (
     <div className="space-y-8">
+      <div>
+        <h1 className="section-title"><span>🛡️</span> 管理者ダッシュボード</h1>
+        <p className="section-subtitle">コミュニティを健やかに保つための運営機能 ✨</p>
+      </div>
       <section>
-        <h1 className="text-2xl font-bold mb-2">OB・OG 承認待ち（{pending?.length ?? 0}）</h1>
-        <div className="space-y-2">
-          {(pending ?? []).map((u: any) => (
-            <div key={u.id} className="card flex items-center justify-between">
-              <div>
-                <div className="font-medium">{u.full_name}</div>
-                <div className="text-xs text-slate-500">{u.email}</div>
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-3"><span>⏳</span> OB・OG 承認待ち {pending.length > 0 && <span className="badge-coral">{pending.length} 件</span>}</h2>
+        <div className="space-y-3">
+          {pending.map((u) => (
+            <div key={u.id} className="card-pop bg-gradient-to-br from-sunny-50 to-white border-sunny-100">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-coral flex items-center justify-center text-white font-bold">{u.full_name.charAt(0)}</div>
+                  <div>
+                    <div className="font-bold text-slate-900">{u.full_name}</div>
+                    <div className="text-xs text-slate-500">{u.email}</div>
+                    {u.graduation_year && (<div className="text-xs text-slate-400 mt-0.5">🎓 {u.graduation_year} 年卒</div>)}
+                  </div>
+                </div>
+                <AdminActions userId={u.id} />
               </div>
-              <AdminActions userId={u.id} />
             </div>
           ))}
-          {(!pending || pending.length === 0) && (
-            <p className="text-sm text-slate-500">承認待ちはありません</p>
-          )}
+          {pending.length === 0 && (<div className="card text-center py-8"><div className="text-4xl mb-2">🎉</div><p className="text-sm text-slate-500">承認待ちはありません！</p></div>)}
         </div>
       </section>
-
       <section>
-        <h2 className="text-xl font-semibold mb-2">全ユーザー（最新50件）</h2>
-        <div className="card overflow-x-auto">
+        <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-3"><span>👥</span> 全ユーザー（最新50件）</h2>
+        <div className="card-pop overflow-x-auto !p-0">
           <table className="w-full text-sm">
-            <thead className="text-left text-slate-500">
-              <tr>
-                <th className="py-2">氏名</th><th>メール</th><th>権限</th><th>状態</th>
-              </tr>
-            </thead>
+            <thead className="text-left bg-slate-50"><tr><th className="py-3 px-4 font-semibold text-slate-600">氏名</th><th className="py-3 px-4 font-semibold text-slate-600">メール</th><th className="py-3 px-4 font-semibold text-slate-600">ロール</th><th className="py-3 px-4 font-semibold text-slate-600">状態</th></tr></thead>
             <tbody>
-              {(allUsers ?? []).map((u: any) => (
-                <tr key={u.id} className="border-t">
-                  <td className="py-2">{u.full_name}</td>
-                  <td className="text-slate-600">{u.email}</td>
-                  <td>
-                    <span className="badge bg-slate-100 text-slate-700">
-                      {ROLE_LABEL[u.role as keyof typeof ROLE_LABEL]}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`badge ${
-                      u.approval_status === 'approved' ? 'bg-emerald-50 text-emerald-700' :
-                      u.approval_status === 'pending' ? 'bg-amber-50 text-amber-700' :
-                      'bg-red-50 text-red-700'
-                    }`}>
-                      {u.approval_status}
+              {allUsers.map((u) => (
+                <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50/50 transition-colors">
+                  <td className="py-3 px-4 font-medium text-slate-900">{u.full_name}</td>
+                  <td className="py-3 px-4 text-slate-600">{u.email}</td>
+                  <td className="py-3 px-4"><span className="badge-slate">{ROLE_EMOJI[u.role]} {ROLE_LABEL[u.role]}</span></td>
+                  <td className="py-3 px-4">
+                    <span className={u.approval_status === 'approved' ? 'badge-mint' : u.approval_status === 'pending' ? 'badge-sunny' : 'badge-coral'}>
+                      {u.approval_status === 'approved' ? '✅ 承認済み' : u.approval_status === 'pending' ? '⏳ 待機中' : '❌ 拒否'}
                     </span>
                   </td>
                 </tr>

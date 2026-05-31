@@ -1,75 +1,41 @@
-import { createClient } from '@/lib/supabase/server';
-import { requireAuth, ROLE_LABEL } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
+import { ROLE_LABEL, ROLE_EMOJI } from '@/lib/roles';
 import { notFound } from 'next/navigation';
 import ChatRequestButton from './ChatRequestButton';
+import Link from 'next/link';
+import { getProfileById } from '@/lib/dummyData';
 
-export const dynamic = 'force-dynamic';
-
-export default async function ProfileDetail({ params }: { params: { id: string } }) {
+export default async function ProfileDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const me = await requireAuth();
-  const supabase = createClient();
-  const { data: p } = await supabase.from('profiles').select('*').eq('id', params.id).single();
+  const p = getProfileById(id);
   if (!p) notFound();
-
-  // 学生→OB/OG への申請可否
-  const canRequestChat =
-    me.role === 'student' && p.role === 'ob_og' && p.accepts_chat_requests;
-
-  // 既存リクエスト確認
-  let existingRequest = null;
-  if (canRequestChat) {
-    const { data } = await supabase
-      .from('chat_requests')
-      .select('*')
-      .eq('student_id', me.id)
-      .eq('ob_og_id', p.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    existingRequest = data;
-  }
-
+  const canRequestChat = me.role === 'student' && p.role === 'ob_og' && p.accepts_chat_requests;
   return (
-    <div className="max-w-2xl mx-auto card">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{p.full_name}</h1>
-          <span className="badge bg-brand-50 text-brand-700 mt-1">
-            {ROLE_LABEL[p.role as keyof typeof ROLE_LABEL]}
-          </span>
+    <div className="max-w-2xl mx-auto space-y-4">
+      <Link href="/profile" className="inline-flex items-center text-sm text-slate-500 hover:text-brand-600 transition-colors">← メンバー一覧に戻る</Link>
+      <div className="card-pop">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-hero flex items-center justify-center text-white font-bold text-3xl shadow-soft shrink-0">{p.full_name.charAt(0)}</div>
+          <div className="flex-1">
+            <h1 className="text-2xl font-bold text-slate-900">{p.full_name}</h1>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <span className={p.role === 'ob_og' ? 'badge-coral' : 'badge-mint'}>{ROLE_EMOJI[p.role]} {ROLE_LABEL[p.role]}</span>
+              {p.role === 'ob_og' && p.graduation_year && (<span className="badge-slate">🎓 {p.graduation_year} 年卒</span>)}
+              {p.role === 'faculty' && p.department && (<span className="badge-slate">🏛️ {p.department}</span>)}
+            </div>
+          </div>
+          {canRequestChat && <ChatRequestButton obOgId={p.id} existing={null} />}
         </div>
-        {canRequestChat && (
-          <ChatRequestButton obOgId={p.id} existing={existingRequest} />
+        {p.bio && (<section className="mt-6"><h3 className="font-bold text-sm text-slate-700 mb-1 flex items-center gap-1"><span>💡</span> 自己紹介</h3><p className="whitespace-pre-wrap text-slate-800 leading-relaxed">{p.bio}</p></section>)}
+        {p.founding_experience && (<section className="mt-6"><h3 className="font-bold text-sm text-slate-700 mb-1 flex items-center gap-1"><span>🚀</span> 創業経験</h3><p className="whitespace-pre-wrap text-slate-800 leading-relaxed">{p.founding_experience}</p></section>)}
+        {p.expertise && p.expertise.length > 0 && (
+          <section className="mt-6">
+            <h3 className="font-bold text-sm text-slate-700 mb-2 flex items-center gap-1"><span>✨</span> 得意領域</h3>
+            <div className="flex flex-wrap gap-1.5">{p.expertise.map((tag) => (<span key={tag} className="chip">#{tag}</span>))}</div>
+          </section>
         )}
       </div>
-      {p.role === 'ob_og' && p.graduation_year && (
-        <p className="text-sm text-slate-500 mt-2">{p.graduation_year} 年卒</p>
-      )}
-      {p.role === 'faculty' && p.department && (
-        <p className="text-sm text-slate-500 mt-2">{p.department}</p>
-      )}
-      {p.bio && (
-        <section className="mt-4">
-          <h3 className="font-semibold text-sm text-slate-600">自己紹介</h3>
-          <p className="mt-1 whitespace-pre-wrap">{p.bio}</p>
-        </section>
-      )}
-      {p.founding_experience && (
-        <section className="mt-4">
-          <h3 className="font-semibold text-sm text-slate-600">創業経験</h3>
-          <p className="mt-1 whitespace-pre-wrap">{p.founding_experience}</p>
-        </section>
-      )}
-      {p.expertise && p.expertise.length > 0 && (
-        <section className="mt-4">
-          <h3 className="font-semibold text-sm text-slate-600">得意領域</h3>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {p.expertise.map((tag: string) => (
-              <span key={tag} className="badge bg-slate-100 text-slate-700">{tag}</span>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }

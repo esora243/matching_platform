@@ -1,62 +1,39 @@
-import { requireAuth, ROLE_LABEL } from '@/lib/auth';
+import { requireAuth } from '@/lib/auth';
+import { ROLE_LABEL, ROLE_EMOJI } from '@/lib/roles';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { ja } from 'date-fns/locale';
-
-export const dynamic = 'force-dynamic';
+import { dummyTopics } from '@/lib/dummyData';
 
 export default async function BoardPage() {
   const me = await requireAuth();
-
-  const topics = [
-    {
-      id: '1',
-      title: '医療機器の薬事承認についての相談',
-      body: '新しいデバイスの開発を進めていますが、PMDAへの相談タイミングで迷っています...',
-      tags: ['医療機器', '薬事'],
-      created_at: new Date().toISOString(),
-      author: { full_name: '医大 花子', role: 'student' },
-      comments: [{ count: 2 }]
-    },
-    {
-      id: '2',
-      title: 'シード期の資金調達について',
-      body: 'VCからの調達か、補助金を活用するかで悩んでいます。',
-      tags: ['資金調達', 'VC'],
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      author: { full_name: '起業 太郎', role: 'ob_og' },
-      comments: [{ count: 5 }]
-    }
-  ];
-
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">起業相談 掲示板</h1>
-        {me.role === 'student' && (
-          <Link href="/board/new" className="btn-primary">＋ 相談を投稿</Link>
-        )}
+    <div className="space-y-6">
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="section-title"><span>💬</span> 起業よろず相談</h1>
+          <p className="section-subtitle">悩みを投げかけて、先輩や先生からのアドバイスをもらおう ✨</p>
+        </div>
+        {me.role === 'student' && (<Link href="/board/new" className="btn-primary">✨ 気軽に相談してみる</Link>)}
       </div>
       <div className="space-y-3">
-        {topics.map((t) => (
-          <div key={t.id} className="card block">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-semibold text-lg">{t.title}</h2>
-                <p className="text-sm text-slate-600 mt-1 line-clamp-2">{t.body}</p>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {t.tags.map((tag) => (
-                    <span key={tag} className="badge bg-brand-50 text-brand-700">#{tag}</span>
-                  ))}
-                </div>
+        {dummyTopics.map((t) => (
+          <Link key={t.id} href={`/board/${t.id}`} className="card-hover block group">
+            <div className="flex items-start gap-4">
+              <div className="text-3xl shrink-0 group-hover:animate-wiggle">💭</div>
+              <div className="flex-1 min-w-0">
+                <h2 className="font-bold text-lg text-slate-900 group-hover:text-brand-700 transition-colors">{t.title}</h2>
+                <p className="text-sm text-slate-600 mt-1 line-clamp-2 leading-relaxed">{t.body}</p>
+                <div className="flex flex-wrap gap-1.5 mt-3">{t.tags.map((tag) => (<span key={tag} className="chip">#{tag}</span>))}</div>
               </div>
-              <div className="text-right text-xs text-slate-500 shrink-0 ml-4">
-                <div>{t.author.full_name} ({ROLE_LABEL[t.author.role as keyof typeof ROLE_LABEL]})</div>
+              <div className="text-right text-xs text-slate-500 shrink-0 space-y-1">
+                <div className="font-semibold text-slate-700 inline-flex items-center gap-1">{ROLE_EMOJI[t.author.role]} {t.author.full_name}</div>
+                <div className="text-[10px]">({ROLE_LABEL[t.author.role]})</div>
                 <div>{formatDistanceToNow(new Date(t.created_at), { addSuffix: true, locale: ja })}</div>
-                <div className="mt-1 text-brand-600">💬 {t.comments[0].count}</div>
+                <div className="badge-brand mt-2">💬 {t.commentCount}</div>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
